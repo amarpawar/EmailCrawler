@@ -4,6 +4,7 @@ This simple crawler allowes you to crawl and download all the mails for specific
 
 Use following command to build and run the test cases.
 > ./gradlew build
+
 This will generate report at the following location - *EmailCrawler//build/reports/tests/test*
 
 
