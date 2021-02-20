@@ -7,6 +7,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.system.ApplicationHome;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,13 +20,20 @@ public class CrawlerApplication implements CommandLineRunner
 	@Autowired
 	private CrawlerService crawlerService;
 
+	private static final String TEST_ENV_KEY = "testEnv";
+
 	public static void main(String[] args) {
 		SpringApplication.run(CrawlerApplication.class, args);
 	}
 
 	@Override
-	public void run(String... args) throws IOException
+	public void run(String... args)
 	{
+		if (StringUtils.hasLength(System.getProperty(TEST_ENV_KEY)) && System.getProperty(TEST_ENV_KEY).equalsIgnoreCase("y"))
+		{
+			return;
+		}
+
 		System.out.println("**************************************************");
 		System.out.println("Starting the Email Crawler Application");
 		System.out.println("**************************************************");

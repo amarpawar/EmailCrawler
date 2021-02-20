@@ -4,5 +4,5 @@ import java.io.IOException;
 
 public interface CrawlerService
 {
-    void crawlEmails(int year, String location) throws IOException;
+    void crawlEmails(int year, String location);
 }

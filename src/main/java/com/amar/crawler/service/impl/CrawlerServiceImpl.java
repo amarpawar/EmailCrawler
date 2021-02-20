@@ -12,7 +12,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,28 +22,18 @@ import java.util.Objects;
 public class CrawlerServiceImpl implements CrawlerService
 {
     @Override
-    public void crawlEmails(int year, String location) throws IOException
+    public void crawlEmails(int year, String location)
     {
-        CloseableHttpClient httpClient = null;
 
-        try
+        try (CloseableHttpClient httpClient = HttpClients.createDefault())
         {
-            httpClient = HttpClients.createDefault();
             Path downloadPath = Paths.get(location).toAbsolutePath().normalize();
-
             downloadEmails(httpClient, year, downloadPath);
         }
         catch (Exception e)
         {
-            e.printStackTrace();
             System.out.println("Error while downloading emails: " + e.getMessage());
-        }
-        finally
-        {
-            if (httpClient != null)
-            {
-                httpClient.close();
-            }
+            e.printStackTrace();
         }
     }
 
@@ -52,25 +41,42 @@ public class CrawlerServiceImpl implements CrawlerService
     {
         Document document = Jsoup.parse(getResponse(httpClient, CommonConstants.URL));
 
-        for (Element element : document.select(CommonConstants.TABLE))
+        if (Objects.nonNull(document))
         {
-            if (element.getElementsByTag(CommonConstants.TH).first().text().equalsIgnoreCase(CommonConstants.YEAR + year))
+            boolean yearFound = false;
+            for (Element element : document.select(CommonConstants.TABLE))
             {
-                Element tBody = element.getElementsByTag(CommonConstants.TBODY).first();
-
-                for (Element trElement : tBody.getElementsByTag(CommonConstants.TR))
+                if (element.getElementsByTag(CommonConstants.TH).first().text().equalsIgnoreCase(CommonConstants.YEAR + year))
                 {
-                    String date = trElement.select(CommonConstants.TD_DATE).first().text();
-                    String link = trElement.select(CommonConstants.TD_LINKS).first().getElementsByTag(CommonConstants.ANCHOR).first().attr(CommonConstants.HREF);
-                    Path monthPath = downloadPath.resolve(date);
+                    yearFound = true;
+                    downloadPath = downloadPath.resolve(CommonConstants.YEAR + year);
+                    Files.createDirectories(downloadPath);
 
-                    System.out.print("Downloading emails for " + date + "... ");
-                    downloadMonthEmails(httpClient, link, monthPath);
-                    System.out.println("done.");
+                    Element tBody = element.getElementsByTag(CommonConstants.TBODY).first();
+
+                    for (Element trElement : tBody.getElementsByTag(CommonConstants.TR))
+                    {
+                        String date = trElement.select(CommonConstants.TD_DATE).first().text();
+                        String link = trElement.select(CommonConstants.TD_LINKS).first().getElementsByTag(CommonConstants.ANCHOR).first().attr(CommonConstants.HREF);
+                        Path monthPath = downloadPath.resolve(date);
+
+                        System.out.print("Downloading emails for " + date + "... ");
+                        downloadMonthEmails(httpClient, link, monthPath);
+                        System.out.println("done.");
+                    }
+
+                    System.out.println("\nAll emails downloaded for year " + year);
                 }
-
-                System.out.println("\nAll emails downloaded for year " + year);
             }
+
+            if (!yearFound)
+            {
+                System.out.println("No emails found for the year " + year);
+            }
+        }
+        else
+        {
+            System.out.println("Empty response for the URL " + CommonConstants.URL);
         }
     }
 
